@@ -1,0 +1,95 @@
+---
+title: "Netflix_EDA"
+author: "Casey Franco"
+date: "`r Sys.Date()`"
+output:
+  pdf_document: default
+  html_document: default
+  word_document: default
+---
+
+# File Info
+I downloaded this file from the following address on [Kaggle](https://www.kaggle.com/datasets/risakashiwabara/netfllix-weekly-views-data)
+
+It contains information about weekly Netflix user viewership.
+
+# Importing and Defining "Value Counts" Function
+```{r}
+
+df <- read.csv("/Users/caseyfranco/Desktop/Data Science Resources/Datasets for Visualization/Netflix Viewership/all-weeks-global.csv")
+
+value_counts <- function(x, sort = FALSE) {
+  counts <- table(x)
+  if (sort) {
+    counts <- counts[order(-counts)]
+  }
+  return(counts)
+}
+
+head(df)
+```
+# Summary Statistics
+```{r}
+summary(df)
+str(df)
+```
+
+# Distribution Visualization
+I'll plot some histograms to see how the variables are distributed.
+```{r}
+hist(df$weekly_rank, main = "Weekly Rank Distribution", xlab = "Weekly Rank")
+value_counts(df$weekly_rank, sort = TRUE)
+```
+It would appear that there is an even distribution of weekly ranks for shows. Exactly 528 entries for each rank. Not much I can garner there except that this dataset is likely curated.
+
+```{r}
+library(ggplot2)
+hist(df$weekly_hours_viewed, main = "Weekly Hours Viewed Distribution", xlab = "Weekly Hours Viewed")
+ggplot(df, aes(y = weekly_hours_viewed)) + geom_boxplot(fill = "lightblue") + labs(title = "Weekly Hours Viewed Box Plot", y = "Hours")
+```
+
+It appears "Weekly Hours Viewed" skews heavily to the lower end of the distribution. This tells me again the data has likely been curated to only include many "average" weeks and a few outliers on the high end of the distribution. It would be strange that the lowest values would be so overly represented. One would think this, as a continuous data category would form a normal distribution. 
+
+I suspect the under-performing weeks were trimmed from the dataset.
+
+```{r}
+hist(df$runtime, main = "Runtime Distribution", xlab = "runtime")
+summary(df$runtime)
+```
+Nothing particularly revealing about runtimes other than it would appear the vast majority of representations are films or series with less than 10 cumulative runtime hours.
+```{r}
+hist(df$weekly_views, main = "Weekly Views Distribution", xlab = "views")
+```
+
+View numbers seem to follow a similar pattern. The existence of high outliers indicates weeks of extremely high viewership. Would be interesting to identify these weeks.
+```{r}
+df[which.max(df$weekly_views), ]
+```
+The week of 2023-12-17 appears to be the maximum for viewership. This should be taken with a grain of salt considering viewership information does not go back further than June of 2023.
+
+The amount of absent information is starting to impact EDA.
+
+I'm curious about the relationship between viewing hours and the number of views.
+
+```{r}
+ggplot(data = df, aes(x = weekly_hours_viewed, y = weekly_views)) + geom_point() + labs(title = "Views vs View Hours", x = "Hours", y = "Views")
+```
+
+Obvious correlation there. What others are there?
+
+# Correlation Matrix
+
+```{r}
+cor_matrix <- cor(df[, sapply(df, is.numeric)], use = "complete.obs")
+
+library(corrplot)
+corrplot(cor_matrix, method = "circle")
+```
+
+Here we see the correlation between views and view hours visualized.
+
+More interestingly, there appears to be a negative correlation between Weekly Views/Weekly View Hours and Weekly Rank. Meaning it would appear that as rank increases, view hours and viewership tends to decrease.
+
+This, while strange on face-value, is explained by lower ranking indicating a higher position. A rank of 1 is superior to rank 10. Thus, as rank "decreases," viewership increases.
+
+
